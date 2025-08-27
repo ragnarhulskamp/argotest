@@ -1,0 +1,94 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 65.0.0
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        ###
+        # Keep it light for kind
+        ###
+        prometheusOperator:
+          resources:
+            requests: { cpu: 100m, memory: 200Mi }
+        kube-state-metrics:
+          resources:
+            requests: { cpu: 50m, memory: 100Mi }
+        nodeExporter:
+          resources:
+            requests: { cpu: 30m, memory: 64Mi }
+
+        ###
+        # Prometheus
+        ###
+        prometheus:
+          ingress:
+            enabled: false
+          service:
+            type: ClusterIP
+          prometheusSpec:
+            retention: 12h
+            walCompression: true
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+            # No PVCs on kind unless you add a StorageClass you trust
+            storageSpec: {}
+            # Leave remote_write empty for kind; add later if you deploy VM
+            remoteWrite: []
+
+        ###
+        # Alertmanager
+        ###
+        alertmanager:
+          enabled: true
+          service:
+            type: ClusterIP
+          alertmanagerSpec:
+            storage: {}  # no PVC on kind
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+
+        ###
+        # Grafana
+        ###
+        grafana:
+          enabled: true
+          service:
+            type: ClusterIP
+          adminPassword: admin
+          persistence:
+            enabled: false
+          defaultDashboardsEnabled: true
+          defaultDashboardsTimezone: browser
+          resources:
+            requests:
+              cpu: 100m
+              memory: 200Mi
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - Replace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  ignoreDifferences:
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      managedFieldsManagers: ["aggregator"]
