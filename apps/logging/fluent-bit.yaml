@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fluent-bit
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
+  source:
+    repoURL: https://fluent.github.io/helm-charts
+    chart: fluent-bit
+    targetRevision: "*"
+    helm:
+      values: |
+        config:
+          inputs: |
+            [INPUT]
+                Name tail
+                Path /var/log/containers/*knative*
+                Parser docker
+                Tag knative.*
+          outputs: |
+            [OUTPUT]
+                Name file
+                Match knative.*
+                Path /tmp/knative-logs.txt
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
