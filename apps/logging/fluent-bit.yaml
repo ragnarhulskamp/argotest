@@ -14,6 +14,12 @@ spec:
     targetRevision: "*"
     helm:
       values: |
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
         config:
           inputs: |
             [INPUT]
@@ -21,6 +27,8 @@ spec:
                 Path /var/log/containers/*knative*
                 Parser docker
                 Tag knative.*
+                Mem_Buf_Limit 5MB
+                Refresh_Interval 10
           outputs: |
             [OUTPUT]
                 Name file
