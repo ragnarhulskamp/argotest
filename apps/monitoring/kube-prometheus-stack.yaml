@@ -79,6 +79,12 @@ spec:
               cpu: 100m
               memory: 200Mi
 
+        prometheusOperator:
+          admissionWebhooks:
+            enabled: false          # remove the webhook
+            patch:
+              enabled: false
+
   syncPolicy:
     automated:
       prune: true
